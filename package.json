@@ -2,10 +2,10 @@
   "name": "api-de-seguimiento-de-gastos",
   "type": "module",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "seerver.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "server": "nodemon src/index.js"
+    "server": "nodemon server.js"
   },
   "repository": {
     "type": "git",
