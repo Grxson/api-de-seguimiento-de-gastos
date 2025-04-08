@@ -1,5 +1,5 @@
 import Expense from '../models/expense.model.js';
-
+import { format } from 'date-fns';
 export const addExpense = async (req, res) => {
     const expense = new Expense({ ...req.body, user: req.user.id });
     await expense.save();
@@ -14,7 +14,9 @@ export const getExpenses = async (req, res) => {
     const now = new Date();
     if (filter) {
         switch (filter) {
-
+            case 'week': query.date = { $gte: new Date(now - 7 * 24 * 60 * 60 * 1000) }; break;
+            case 'month': query.date = { $gte: new Date(now.setMonth(now.getMonth() - 1)) }; break;
+            case '3months': query.date = { $gte: new Date(now.setMonth(now.getMonth() - 3)) }; break;
         }
 
     } else if (startDate && endDate) {
@@ -22,7 +24,12 @@ export const getExpenses = async (req, res) => {
     }
 
     const expenses = await Expense.find(query).sort({ date: -1 });
-    res.json(expenses);
+
+    const formattedExpenses = expenses.map(expense => ({
+        ...expense.toObject(),
+        date: format(new Date(expense.date), 'dd/MM/yyyy')  // Formato de fecha: día/mes/año
+    }));
+    res.json(formattedExpenses);
 }
 
 export const updateExpense = async (req, res) => {
