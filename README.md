@@ -81,3 +81,7 @@ Authorization: Bearer <tu_token>
   "date": "2025-04-07T23:48:15.961Z"
 }
 ```
+
+## Documentación de los Endpoint de la API
+
+https://documenter.getpostman.com/view/32483566/2sB2cVf2Kk
