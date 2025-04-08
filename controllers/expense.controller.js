@@ -8,28 +8,78 @@ export const addExpense = async (req, res) => {
 
 
 export const getExpenses = async (req, res) => {
-    const { filter, startDate, endDate } = req.query;
+    const { filter, startDate, endDate, category } = req.query;
     let query = { user: req.user.id }
 
-    const now = new Date();
+    const convertToDate = (date) => {
+        const parsedDate = new Date(date)
+        return isNaN(parsedDate) ? null : parsedDate;
+    }
     if (filter) {
+        const now = new Date();
         switch (filter) {
-            case 'week': query.date = { $gte: new Date(now - 7 * 24 * 60 * 60 * 1000) }; break;
-            case 'month': query.date = { $gte: new Date(now.setMonth(now.getMonth() - 1)) }; break;
-            case '3months': query.date = { $gte: new Date(now.setMonth(now.getMonth() - 3)) }; break;
+            case 'last-week':
+                const lastWeek = new Date(now.setDate(now.getDate() - 7));
+                query.date = { $gte: lastWeek };
+                break;
+            case 'last-month':
+                const lastMonth = new Date(now.setMonth(now.getMonth() - 1));
+                query.date = { $gte: lastMonth };
+                break;
+            case 'last-3-months':
+                const last3Months = new Date();
+                last3Months.setMonth(now.getMonth() - 3);
+                query.date = { $gte: last3Months };
+                break;
+            default:
+                return res.status(400).json({ message: 'Filtro de fecha no válido' });
+        }
+    } else if (startDate && endDate) {
+
+        // Verificar si las fechas son validas
+        const start = convertToDate(startDate);
+        const end = convertToDate(endDate);
+
+        if (!start || !end) {
+            return res.status(400).json({ message: 'Las fechas proporcionadas no son válidas' });
         }
 
-    } else if (startDate && endDate) {
-        query.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
+        if (start > end) {
+            return res.status(400).json({ message: 'La fecha de inicio no puede ser mayor que la fecha de fin' });
+        }
+        // Se agrego el rango de las fechas al query
+        query.date = { $gte: start, $lte: end };
+
+    } else if (endDate) {
+        const end = convertToDate(endDate);
+
+        if (!end) {
+            return res.status(400).json({ message: 'La fecha fin no es válida' });
+        }
+
+        query.date = { $lte: end };
     }
 
-    const expenses = await Expense.find(query).sort({ date: -1 });
+    if (category) {
+        query.category = category;
+    }
 
-    const formattedExpenses = expenses.map(expense => ({
-        ...expense.toObject(),
-        date: format(new Date(expense.date), 'dd/MM/yyyy')  // Formato de fecha: día/mes/año
-    }));
-    res.json(formattedExpenses);
+    try {
+        const expenses = await Expense.find(query).sort({ date: -1 });
+
+        if (expenses.length === 0) return res.status(404).json({ message: 'No se encontraron gastos' });
+
+        const formattedExpenses = expenses.map(expense => ({
+            ...expense.toObject(),
+            date: format(new Date(expense.date), 'dd/MM/yyyy')  // Formato de fecha: día/mes/año
+        }));
+        res.json(formattedExpenses);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Error al obtener los gastos' });
+    }
+
+
 }
 
 export const updateExpense = async (req, res) => {
